@@ -5,6 +5,15 @@ require File.join(File.dirname(__FILE__), "test_helper")
 
 Thread.abort_on_exception = true
 
+Signal.trap('SIGINT') do
+  Thread.list.each do |t|
+    puts t.inspect
+    puts t.backtrace.join("\n")
+    puts "*******"
+  end
+  exit
+end
+
 class TestCacheTorture < Test::Unit::TestCase
   class HashCollisionKey
     attr_reader :hash, :key
@@ -187,11 +196,54 @@ class TestCacheTorture < Test::Unit::TestCase
     cache  = options[:cache_setup].call(options, keys)
     barier = ThreadSafe::Test::Barier.new(options[:thread_count])
     t      = Time.now
+    @counter = 0
+    stopper = ThreadSafe::Util::AtomicReference.new(false)
+    Thread.new do
+      until stopper.get
+        x = @counter
+        sleep(20)
+        break if stopper.get
+        unless @counter > x
+          break if stopper.get
+          begin
+            puts "#{meth}: STUCK!!!!"
+            table = cache.table
+            adder = cache.instance_variable_get(:@counter)
+            puts "table.size #{table.size}, size_control: #{cache.size_control} adder: #{adder.inspect}[#{adder.base}, #{adder.cells.to_a}]"
+            table.each do |node|
+              t = 0
+              begin
+                if node
+                  puts "#{'  ' * t}#{[:key, node.key, :value, node.value, :hash, node.hash].inspect}"
+                else
+                  puts "nil"
+                end
+                t += 1
+              end while node && node = node.next
+              puts node.inspect
+            end
+          rescue Exception => e
+            puts e.inspect
+          end
+          Thread.list.each do |t|
+            puts t.inspect
+            puts t.backtrace.join("\n")
+            puts "*******"
+          end
+          # exit
+
+          # break
+        end
+        puts "#{meth}: #{x}"
+      end
+    end
+    puts meth
     result = (1..options[:thread_count]).map do
       Thread.new do
         setup_sync_and_start_loop(meth, cache, keys, barier, options[:loop_count])
       end
     end.map(&:value).tap{|x| puts(([{:meth => meth, :time => "#{Time.now - t}s", :loop_count => options[:loop_count], :key_count => keys.size}] + x).inspect)}
+    stopper.set true
     yield result, cache, options if block_given?
   end
 
@@ -219,6 +271,7 @@ class TestCacheTorture < Test::Unit::TestCase
           #{body}
           i += 1
         end
+        @counter += 1
         acc
       end unless method_defined?(:#{inner_meth_name}_multiple_keys)
 
@@ -229,6 +282,7 @@ class TestCacheTorture < Test::Unit::TestCase
           #{body}
           i += 1
         end
+        @counter += 1
         acc
       end unless method_defined?(:#{inner_meth_name}_single_key)
 
