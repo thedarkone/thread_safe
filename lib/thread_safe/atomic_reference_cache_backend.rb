@@ -406,7 +406,7 @@ module ThreadSafe
       end
     end
 
-    if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
+    if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx' && false # <- remove "&& false" to fix the bug on Rubinius
       def compute_if_absent(key)
         hash          = key_hash(key)
         current_table = table || initialize_table
