@@ -240,7 +240,12 @@ class TestCacheTorture < Test::Unit::TestCase
     puts meth
     result = (1..options[:thread_count]).map do
       Thread.new do
-        setup_sync_and_start_loop(meth, cache, keys, barier, options[:loop_count])
+        begin
+          setup_sync_and_start_loop(meth, cache, keys, barier, options[:loop_count])
+        rescue Exception => e
+          puts e.backtrace.join("\n")
+          raise
+        end
       end
     end.map(&:value).tap{|x| puts(([{:meth => meth, :time => "#{Time.now - t}s", :loop_count => options[:loop_count], :key_count => keys.size}] + x).inspect)}
     stopper.set true
