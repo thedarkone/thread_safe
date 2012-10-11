@@ -388,7 +388,7 @@ module ThreadSafe
       current_table = table || initialize_table
       while true
         if !(node = current_table.volatile_get(i = current_table.hash_to_index(hash)))
-          succeeded, new_value = current_table.try_to_cas_in_computed(i, hash, key) { yield }
+          succeeded, new_value = current_table.try_to_cas_in_computed(i, hash, key) { raise 'THIS_MIGHT_DEADLOCK' }
           if succeeded
             increment_size
             return new_value
