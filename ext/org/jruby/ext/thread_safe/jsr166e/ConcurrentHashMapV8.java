@@ -1699,7 +1699,13 @@ public class ConcurrentHashMapV8<K, V>
                         if (tabAt(tab, i) == f) {
                             count = 1;
                             TreeNode p = t.getTreeNode(h, k, t.root);
-                            Object pv = (p == null) ? null : p.val;
+                            Object pv;
+                            if (p == null) {
+                                if (onlyIfPresent)
+                                    break;
+                                pv = null;
+                            } else
+                                pv = p.val;
                             if ((val = mf.apply(k, (V)pv)) != null) {
                                 if (p != null)
                                     p.val = val;
