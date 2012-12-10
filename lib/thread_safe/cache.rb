@@ -9,7 +9,7 @@ module ThreadSafe
 
   ConcurrentCacheBackend =
     case defined?(RUBY_ENGINE) && RUBY_ENGINE
-    when 'jruby'; JRubyCacheBackend
+    when 'jruby'; AtomicReferenceCacheBackend
     when 'ruby';  MriCacheBackend
     when 'rbx';   AtomicReferenceCacheBackend
     else
