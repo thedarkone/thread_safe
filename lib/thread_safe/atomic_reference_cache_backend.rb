@@ -405,12 +405,12 @@ module ThreadSafe
       value
     end
 
-    def compute_if_absent(key)
+    def compute_if_absent(key, &block)
       hash          = key_hash(key)
       current_table = table || initialize_table
       while true
         if !(node = current_table.volatile_get(i = current_table.hash_to_index(hash)))
-          succeeded, new_value = current_table.try_to_cas_in_computed(i, hash, key) { yield }
+          succeeded, new_value = current_table.try_to_cas_in_computed(i, hash, key, &block)
           if succeeded
             increment_size
             return new_value
@@ -422,7 +422,7 @@ module ThreadSafe
         elsif Node.locked_hash?(node_hash)
           try_await_lock(current_table, i, node)
         else
-          succeeded, value = attempt_internal_compute_if_absent(key, hash, current_table, i, node, node_hash) { yield }
+          succeeded, value = attempt_internal_compute_if_absent(key, hash, current_table, i, node, node_hash, &block)
           return value if succeeded
         end
       end
