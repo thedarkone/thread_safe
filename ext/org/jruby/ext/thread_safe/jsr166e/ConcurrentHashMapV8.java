@@ -1851,7 +1851,7 @@ public class ConcurrentHashMapV8<K, V>
                             if ((e.hash & HASH_BITS) == h &&
                                     (ev = e.val) != null &&
                                     ((ek = e.key) == k || k.equals(ek))) {
-                                val = mf.apply(v, (V)ev);
+                                val = mf.apply((V)ev, v);
                                 if (val != null)
                                     e.val = val;
                                 else {
